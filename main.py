@@ -1,32 +1,66 @@
 # main.py
 import pygame
-from constants import * # Import all constants from constants.py
+from constants import *
+from player import Player
+from asteroid import Asteroid
+from asteroidfield import AsteroidField
+from shot import Shot
 
 def main():
     print("Starting Asteroids!")
     print(f"Screen width: {SCREEN_WIDTH}")
     print(f"Screen height: {SCREEN_HEIGHT}")
 
-    # Initialize Pygame
     pygame.init()
-
-    # Get a new GUI window (the game screen)
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    clock = pygame.time.Clock()
+    dt = 0
+
+    updatable = pygame.sprite.Group()
+    drawable = pygame.sprite.Group()
+    asteroids = pygame.sprite.Group()
+    shots = pygame.sprite.Group()
+
+    Player.containers = (updatable, drawable)
+    Asteroid.containers = (asteroids, updatable, drawable)
+    AsteroidField.containers = (updatable,)
+    Shot.containers = (shots, updatable, drawable)
+
+    player = Player(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
+    asteroid_field = AsteroidField()
 
     # Game Loop
     while True:
-        # Step 1: Check for player inputs (and window close)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                return # Exit the main function, which quits the game
+                return
 
-        # Step 2: Update the game world (we'll add this later)
-        # For now, there are no game objects to update
+        updatable.update(dt)
 
-        # Step 3: Draw the game to the screen
-        screen.fill((0, 0, 0)) # Fill the screen with black (RGB values)
-        pygame.display.flip()  # Refresh the entire screen (make changes visible)
+        # Collision detection: Player vs. Asteroids
+        for asteroid in asteroids:
+            if player.collides_with(asteroid):
+                print("Game over!")
+                return
 
-# This ensures the main() function is only called when this file is run directly
+        # Collision Detection: Shots vs. Asteroids
+        for asteroid in asteroids:
+            for shot in shots:
+                if asteroid.collides_with(shot):
+                    # --- Change: Call .split() instead of .kill() ---
+                    asteroid.split() # The asteroid now calls its own split logic
+                    # --------------------------------------------------
+                    shot.kill()     # The shot is still destroyed
+                    break
+
+        screen.fill((0, 0, 0))
+
+        for obj in drawable:
+            obj.draw(screen)
+
+        pygame.display.flip()
+
+        dt = clock.tick(60) / 1000
+
 if __name__ == "__main__":
     main()
